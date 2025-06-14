@@ -18,7 +18,7 @@ export default function NewComplaint() {
     const response = await fetch('http://localhost:5000/api/complaints', {
       method: 'POST',
       headers: {
-        userid: 'user123' //  Replace this with real user ID after login
+        userid: 'user123'
       },
       body: formData
     });
