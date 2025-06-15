@@ -7,7 +7,13 @@ const userSchema = new mongoose.Schema({
   password: String,
   flatNo: String,
   role: String,
-   contact: String,
+  contact: String,
+  qrCodeText: String,
+   role: { type: String, enum: ['resident', 'worker'] }, 
+  specialization: String, 
+  assignedTo: String,
+  status: String,
+  priority: String,
   tokens: {
     type: Number,
     default: 0  // start with 0 tokens

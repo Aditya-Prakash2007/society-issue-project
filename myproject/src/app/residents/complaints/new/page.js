@@ -1,56 +1,103 @@
-'use client'
+'use client';
+
 import { useState } from 'react';
+import ReactQRCode from 'react-qr-code';
 
 export default function NewComplaint() {
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('plumbing');
   const [description, setDescription] = useState('');
   const [photo, setPhoto] = useState(null);
-  const [imageUrl, setImageUrl] = useState('');
+  const [message, setMessage] = useState('');
+  const [complaintId, setComplaintId] = useState(null);
+  const [qrCode, setQrCode] = useState(null);
 
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage('');
+    setComplaintId(null);
+    setQrCode(null);
+
+    if (!description.trim()) {
+      setMessage('Description is required');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMessage('Please login first');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('category', category);
     formData.append('description', description);
-    formData.append('photo', photo);
+    if (photo) formData.append('photo', photo);
 
-    const response = await fetch('http://localhost:5000/api/complaints', {
-      method: 'POST',
-      headers: {
-        userid: 'user123'
-      },
-      body: formData
-    });
+    try {
+      const res = await fetch('http://localhost:5000/api/complaints/submit', {
+        method: 'POST',
+       headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
 
-    const data = await response.json();
-    if (data.complaint?.photo) {
-      setImageUrl(`http://localhost:5000/uploads/${data.complaint.photo}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.message || 'Submission failed');
+        return;
+      }
+
+      setMessage('Complaint submitted successfully!');
+      setComplaintId(data.complaintId);
+      setQrCode(data.qrCode);
+
+      setDescription('');
+      setPhoto(null);
+    } catch (error) {
+      setMessage('Server error');
     }
-  }
+  };
 
   return (
-    <div className="container">
-      <h2>File a Complaint</h2>
+    <div style={{ maxWidth: 500, margin: 'auto', padding: 20 }}>
+      <h2>New Complaint</h2>
       <form onSubmit={handleSubmit}>
-        <select value={category} onChange={e => setCategory(e.target.value)}>
-          <option value="">Select Category</option>
-          <option value="Plumbing">Plumbing</option>
-          <option value="Electrical">Electrical</option>
+        <label>Category:</label><br />
+        <select
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          style={{ width: '100%', padding: 8, marginBottom: 10 }}
+        >
+          <option value="plumbing">Plumbing</option>
+          <option value="electrical">Electrical</option>
         </select>
+
+        <label>Description:</label><br />
         <textarea
-          placeholder="Description"
           value={description}
           onChange={e => setDescription(e.target.value)}
-        ></textarea>
-        <input type="file" onChange={e => setPhoto(e.target.files[0])} />
-        <button type="submit">Submit</button>
+          rows={4}
+          style={{ width: '100%', padding: 8, marginBottom: 10 }}
+          placeholder="Describe your issue"
+        />
+
+        <label>Photo (optional):</label><br />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={e => setPhoto(e.target.files[0])}
+          style={{ marginBottom: 20 }}
+        />
+
+        <button type="submit" style={{ padding: '10px 20px' }}>Submit</button>
       </form>
 
-      {imageUrl && (
-        <div>
-          <h4>Uploaded Photo:</h4>
-          <img src={imageUrl} alt="Complaint Photo" width="300" />
+      {message && <p style={{ marginTop: 20, color: message.includes('successfully') ? 'green' : 'red' }}>{message}</p>}
+
+      {complaintId && (
+        <div style={{ marginTop: 30, textAlign: 'center' }}>
+          <h4>Complaint ID: {complaintId}</h4>
+          {qrCode && <ReactQRCode value={qrCode} />}
         </div>
       )}
     </div>
